@@ -1,0 +1,1101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pomodoro Timer with Pet</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Space Grotesk', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            neonPurple: {
+              DEFAULT: '#bf57ff',
+              light: '#d496fe',
+              glow: 'rgba(191, 87, 255, 0.4)',
+              border: 'rgba(191, 87, 255, 0.15)'
+            },
+            neonGreen: {
+              DEFAULT: '#22c55e',
+              light: '#4ade80',
+              glow: 'rgba(34, 197, 94, 0.4)',
+              border: 'rgba(34, 197, 94, 0.15)'
+            },
+            darkBg: '#09090b',
+            darkCard: '#131317'
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    body {
+      background-color: #09090b;
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .neon-purple-circle {
+      filter: drop-shadow(0 0 12px rgba(191, 87, 255, 0.4));
+    }
+    
+    .neon-green-circle {
+      filter: drop-shadow(0 0 12px rgba(34, 197, 94, 0.4));
+    }
+    
+    .text-glow-purple {
+      text-shadow: 0 0 12px rgba(191, 87, 255, 0.6);
+    }
+    
+    .text-glow-green {
+      text-shadow: 0 0 12px rgba(34, 197, 94, 0.6);
+    }
+    
+    .text-glow-red {
+      text-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
+    }
+    
+    #timer-progress {
+      transition: stroke-dashoffset 0.3s linear, stroke 0.5s ease;
+    }
+    
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 0.12; transform: scale(1); }
+      50% { opacity: 0.28; transform: scale(1.04); }
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-5px); }
+    }
+    
+    .animate-pulse-slow {
+      animation: pulse-slow 4s infinite ease-in-out;
+    }
+    
+    .animate-float {
+      animation: float 4s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center min-h-screen text-zinc-100 overflow-x-hidden relative">
+
+  <!-- Ambient Backdrop Glow Spots -->
+  <div id="ambient-glow" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-purple-500/5 blur-[120px] pointer-events-none transition-all duration-700"></div>
+  <div class="absolute top-[10%] left-[10%] w-[250px] h-[250px] rounded-full bg-zinc-900/40 blur-[80px] pointer-events-none"></div>
+
+  <!-- Main Pomodoro Container -->
+  <main class="w-full max-w-sm mx-4 bg-zinc-950 border border-zinc-900/60 rounded-[2.5rem] p-8 shadow-2xl relative z-10 overflow-hidden">
+    
+    <!-- Header -->
+    <header class="flex items-center justify-between mb-8 select-none">
+      <div class="flex items-center gap-2">
+        <div id="header-dot" class="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(191,87,255,0.8)] animate-pulse"></div>
+        <h1 class="font-display font-medium text-sm tracking-widest text-zinc-200 uppercase">Pomodoro</h1>
+      </div>
+      <div class="flex items-center gap-2">
+        <!-- Settings Gear button (Indonesian: Logo Setting) -->
+        <button id="open-settings-btn" class="p-1 px-1.5 rounded-lg bg-zinc-900 border border-zinc-800/60 hover:bg-zinc-800 hover:text-white text-zinc-400 transition active:scale-95 flex items-center justify-center cursor-pointer" title="Atur Waktu">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="animate-[spin_10s_linear_infinite] hover:animate-[spin_2s_linear_infinite]">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+        <span class="text-[10px] font-mono tracking-wider text-zinc-500 uppercase px-2.5 py-1 rounded-full bg-zinc-900 border border-zinc-800/50">V1.3</span>
+      </div>
+    </header>
+
+    <!-- Session Mode Selector Pills -->
+    <section class="flex p-1 bg-zinc-900/60 border border-zinc-800/40 rounded-2xl w-full mx-auto mb-8 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
+      <button id="mode-focus" class="flex-1 py-3 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all duration-300 bg-purple-500/10 text-purple-400 border border-purple-500/10 active:scale-95 shadow-sm">
+        Focus
+      </button>
+      <button id="mode-break" class="flex-1 py-3 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all duration-300 text-zinc-400 hover:text-zinc-200 active:scale-95">
+        Break
+      </button>
+    </section>
+
+    <!-- Countdown Center Ring (With Central Pet Sandbox) -->
+    <section class="flex flex-col items-center justify-center relative">
+      <div class="relative w-[300px] h-[300px] flex items-center justify-center select-none">
+        
+        <!-- SVG Progress Indicator -->
+        <svg class="w-full h-full rotate-[-90deg] absolute inset-0 z-0" viewBox="0 0 300 300">
+          <!-- Background track line -->
+          <circle 
+            cx="150" 
+            cy="150" 
+            r="135" 
+            class="stroke-zinc-900/90 fill-transparent" 
+            stroke-width="5" 
+          />
+          <!-- Interactive animated progress line -->
+          <circle 
+            id="timer-progress" 
+            cx="150" 
+            cy="150" 
+            r="135" 
+            class="stroke-purple-500 fill-transparent neon-purple-circle" 
+            stroke-width="5.5" 
+            stroke-linecap="round" 
+            stroke-dasharray="848.2" 
+            stroke-dashoffset="0" 
+          />
+        </svg>
+
+        <!-- Dynamic Content nested centered in the dial -->
+        <div class="relative z-10 flex flex-col items-center justify-center w-full h-full">
+          
+          <!-- Mode subtitle indicator -->
+          <span id="timer-label" class="text-[10px] tracking-[0.25em] font-semibold text-purple-400 uppercase mb-4">Focus Session</span>
+          
+          <!-- Designated Virtual Pet Center Space (Interactive Sandbox) -->
+          <div class="relative mb-3 flex flex-col items-center">
+            <!-- Cute level badge overlapping the container -->
+            <div id="pet-level-badge" class="absolute -top-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-zinc-950 border border-purple-500/30 text-[9px] font-mono uppercase font-bold text-purple-400 tracking-wider shadow-md z-20 transition-all duration-300">LV. 1</div>
+             
+            <!-- Outer evolved glowing ring (visible only at level >= 3) -->
+            <div id="pet-halo" class="absolute -inset-1.5 rounded-full opacity-0 pointer-events-none transition-all duration-500 z-0">
+              <!-- Animated gradient ring -->
+              <div class="w-full h-full rounded-full bg-gradient-to-r from-purple-500 via-pink-400 to-cyan-400 animate-[spin_5s_linear_infinite] blur-[4px]"></div>
+            </div>
+
+            <div id="pet-container" class="relative w-28 h-28 flex flex-col items-center justify-center rounded-full bg-zinc-950 border border-purple-500/20 shadow-[inset_0_2px_10px_rgba(0,0,0,0.8),_0_0_15px_rgba(191,87,255,0.05)] overflow-hidden transition-all duration-500 group z-10">
+              <!-- Pulsing ambient fluid light -->
+              <div id="pet-ambient" class="absolute inset-0 bg-gradient-to-tr from-purple-500/5 to-transparent animate-pulse-slow"></div>
+               
+              <!-- Graphic layout elements inside the nest placeholder -->
+              <div class="relative z-10 flex flex-col items-center text-center p-3 animate-float mb-0.5">
+                <span id="pet-icon" class="text-3xl select-none filter drop-shadow-[0_0_5px_rgba(191,87,255,0.4)] transition-all duration-500">🥚</span>
+                <span id="pet-title" class="text-[9px] uppercase tracking-widest text-purple-400 font-semibold mt-1.5 font-display">Pet Nest</span>
+                <span id="pet-desc" class="text-[7.5px] text-zinc-500 tracking-wide mt-0.5 max-w-[85px] leading-tight select-none">Warm & waiting to hatch...</span>
+              </div>
+
+              <!-- EXP Progress bar at the base of the capsule -->
+              <div class="absolute bottom-0 left-0 w-full h-1 bg-zinc-900/90 border-t border-zinc-800/40">
+                <div id="pet-exp-bar" class="h-full bg-gradient-to-r from-purple-500 to-purple-400 shadow-[0_0_8px_rgba(191,87,255,0.5)] transition-all duration-500" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <!-- Floating gamification notification overlay container -->
+            <div id="pet-notification-container" class="absolute inset-0 pointer-events-none z-30"></div>
+          </div>
+
+          <!-- Digital Time Count Display -->
+          <time id="time-display" class="font-mono text-4xl font-black tracking-tight text-white transition-all duration-500 text-glow-purple">25:00</time>
+          
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Operational Core Buttons -->
+    <section class="flex items-center justify-center gap-4 mt-8">
+      
+      <!-- Reset button -->
+      <button id="reset-btn" class="p-4 rounded-2xl bg-zinc-900 border border-zinc-800/70 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700 transition active:scale-95 shadow-md flex items-center justify-center group" title="Reset Timer">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-hover:rotate-[-45deg] transition-transform duration-300">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+      </button>
+
+      <!-- Main Play/Pause Call-to-action bar -->
+      <button id="play-btn" class="flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-bold tracking-wider text-xs uppercase transition-all duration-300 active:scale-98 shadow-[0_4px_25px_rgba(191,87,255,0.35)] flex items-center justify-center gap-2 select-none" title="Toggle Countdown">
+        <!-- SVG Play Icon -->
+        <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+        <!-- SVG Pause Icon -->
+        <svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="hidden">
+          <line x1="18" y1="4" x2="18" y2="20"></line>
+          <line x1="6" y1="4" x2="6" y2="20"></line>
+        </svg>
+        <span id="btn-text">Start Focus</span>
+      </button>
+
+      <!-- Audio chime toggability -->
+      <button id="sound-btn" class="p-4 rounded-2xl bg-zinc-900 border border-zinc-800/70 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700 transition active:scale-95 shadow-md flex items-center justify-center" title="Toggle Sound Chimes">
+        <svg id="sound-on-svg" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+        </svg>
+        <svg id="sound-off-svg" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+          <line x1="22" y1="9" x2="16" y2="15"/>
+          <line x1="16" y1="9" x2="22" y2="15"/>
+        </svg>
+      </button>
+
+    </section>
+
+    <!-- Session Stats Panel -->
+    <footer class="mt-8 pt-6 border-t border-zinc-900/80 w-full flex justify-around items-center text-center select-none">
+      <div>
+        <div class="text-[9px] text-zinc-500 uppercase tracking-[0.15em] font-semibold">Cycles Done</div>
+        <div id="completed-cycles" class="text-base font-bold font-display text-zinc-350 mt-1">0</div>
+      </div>
+      <div class="h-8 w-[1px] bg-zinc-900"></div>
+      <div>
+        <div class="text-[9px] text-zinc-500 uppercase tracking-[0.15em] font-semibold">Focused Time</div>
+        <div id="total-focused-time" class="text-base font-bold font-display text-zinc-350 mt-1 font-mono">0<span class="text-[10px] text-zinc-500 font-sans ml-0.5">m</span></div>
+      </div>
+    </footer>
+
+    <!-- Interactive Overlay Modal Settings Panel (Atur Waktu) -->
+    <div id="settings-modal" class="absolute inset-0 bg-zinc-950/95 backdrop-blur-md z-30 flex flex-col justify-center p-8 transition-all duration-300 opacity-0 pointer-events-none transform translate-y-4">
+      <div class="relative w-full">
+        <!-- Close overlay button -->
+        <button id="close-settings-btn" class="absolute -top-12 right-0 p-2 text-zinc-400 hover:text-white transition active:scale-90 cursor-pointer" title="Tutup">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+
+        <h2 class="font-display font-bold text-lg text-white mb-6 uppercase tracking-wider flex items-center gap-2">
+          <span class="text-purple-400 filter drop-shadow-[0_0_8px_rgba(191,87,255,0.5)]">⚙️</span>
+          Pengaturan Waktu
+        </h2>
+
+        <!-- Custom Inputs Form Container -->
+        <div class="space-y-6">
+          
+          <!-- Focus Duration Input Slider + Number -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label for="slider-focus-min" class="text-xs font-semibold uppercase tracking-wider text-purple-400">Durasi Focus (Menit)</label>
+              <span id="label-focus-val" class="font-mono text-sm font-bold text-white bg-purple-500/10 px-2.5 py-0.5 rounded-lg border border-purple-500/20">25m</span>
+            </div>
+            <input 
+              id="slider-focus-min" 
+              type="range" 
+              min="1" 
+              max="120" 
+              value="25" 
+              class="w-full accent-purple-500 bg-zinc-900 rounded-lg cursor-pointer h-1.5 focus:outline-none transition-all duration-200"
+            />
+          </div>
+
+          <!-- Break Duration Input Slider + Number -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label for="slider-break-min" class="text-xs font-semibold uppercase tracking-wider text-green-400">Durasi Break (Menit)</label>
+              <span id="label-break-val" class="font-mono text-sm font-bold text-white bg-green-500/10 px-2.5 py-0.5 rounded-lg border border-green-500/20">5m</span>
+            </div>
+            <input 
+              id="slider-break-min" 
+              type="range" 
+              min="1" 
+              max="60" 
+              value="5" 
+              class="w-full accent-green-500 bg-zinc-900 rounded-lg cursor-pointer h-1.5 focus:outline-none transition-all duration-200"
+            />
+          </div>
+
+          <!-- Quick presets selections -->
+          <div>
+            <span class="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest block mb-2.5">Preset Cepat:</span>
+            <div class="grid grid-cols-3 gap-2">
+              <button id="preset-classic" class="py-2 px-1 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-[10px] font-mono text-zinc-300 font-bold tracking-wide border border-zinc-800 transition active:scale-95 focus:outline-none cursor-pointer">
+                25 / 5
+              </button>
+              <button id="preset-double" class="py-2 px-1 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-[10px] font-mono text-zinc-300 font-bold tracking-wide border border-zinc-800 transition active:scale-95 focus:outline-none cursor-pointer">
+                50 / 10
+              </button>
+              <button id="preset-short" class="py-2 px-1 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-[10px] font-mono text-zinc-300 font-bold tracking-wide border border-zinc-800 transition active:scale-95 focus:outline-none cursor-pointer">
+                15 / 3
+              </button>
+            </div>
+          </div>
+
+          <!-- Action buttons for the settings panel overlay -->
+          <div class="pt-4 flex gap-3">
+            <button id="save-settings-btn" class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-bold tracking-wider text-xs uppercase shadow-[0_4px_15px_rgba(191,87,255,0.3)] transition active:scale-95 cursor-pointer">
+              Simpan & Reset
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Abandonment / Privacy Warning Alert Modal (Security Feature) -->
+    <div id="abandon-modal" class="absolute inset-0 bg-red-950/95 backdrop-blur-md z-30 flex flex-col justify-center items-center p-8 transition-all duration-300 opacity-0 pointer-events-none transform translate-y-4">
+      <div class="text-center w-full">
+        <!-- Big Angry Pet Animated Emoji container -->
+        <div class="relative w-24 h-24 mx-auto mb-4 bg-zinc-950 rounded-full border border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.25)] flex items-center justify-center">
+          <span id="abandoned-angry-emoji" class="text-5xl select-none filter drop-shadow-[0_0_10px_rgba(239,68,68,0.5)] animate-bounce">😡</span>
+        </div>
+        
+        <h3 class="font-display font-black text-lg text-red-500 uppercase tracking-widest mb-3 text-glow-red">
+          Loophole Blocked!
+        </h3>
+        
+        <p class="text-xs text-zinc-300 leading-relaxed max-w-[250px] mx-auto mb-6">
+          Your pet is crying because you abandoned them!
+        </p>
+
+        <!-- Red Neon Stat Penalty Box -->
+        <div class="inline-block px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 font-mono text-xs font-bold text-red-400 mb-6 tracking-wide shadow-inner">
+          EXP PENALTY: <span class="text-white text-glow-red font-black">-25 EXP</span> 😭
+        </div>
+
+        <button id="close-abandon-btn" class="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-red-650 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-bold tracking-widest text-[10px] uppercase shadow-[0_4px_15px_rgba(239,68,68,0.35)] transition active:scale-95 cursor-pointer">
+          Saya Menyesal 🙏
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // System Configurations (mutable time durations updated by settings)
+    let FOCUS_DURATION = 25 * 60; // Default 25 Minutes
+    let BREAK_DURATION = 5 * 60;  // Default 5 Minutes
+    const CIRCUMFERENCE = 848.2;    // matching circle radius 135 (2 * pi * 135)
+
+    // Primary State Engine
+    let currentMode = 'focus'; // 'focus' | 'break'
+    let timeRemaining = FOCUS_DURATION;
+    let timerInterval = null;
+    let isRunning = false;
+    let isMuted = false;
+    let completedCyclesCount = 0;
+    let totalFocusedSeconds = 0;
+
+    // Pet State Engine
+    let petLevel = 1;
+    let petExp = 0;
+    let petMood = 'Idle'; // 'Idle' | 'Studying' | 'Sad' | 'Resting' | 'Angry'
+    let focusSessionInterrupted = false;
+
+    // Pet Level Tiers Configuration
+    const PET_CONFIG = {
+      1: { name: 'Focus Egg', base: '🥚', studying: '📝', sad: '🥺', angry: '😡', resting: '💤', desc: 'Warm & waiting to hatch...' },
+      2: { name: 'Baby Hatchling', base: '🐣', studying: '✍️', sad: '😢', angry: '👿', resting: '💤', desc: 'A tiny eager assistant.' },
+      3: { name: 'Focus Knight ⚔️', base: '🐱‍👤', studying: '💻', sad: '😭', angry: '🤬', resting: '🍵', desc: 'Evolved! A Legendary Focus Knight.' },
+      4: { name: 'Rune Scholar 🧙‍♂️', base: '🦉', studying: '🔮', sad: '😿', angry: '👿', resting: '🌌', desc: 'Arcane owl master of learning.' },
+      5: { name: 'Quantum Dragon 🐉', base: '🐉', studying: '✨', sad: '🐲', angry: '🔥', resting: '🪐', desc: 'Ultimate! Master of deep concentration.' }
+    };
+
+    // DOM Nodes Query
+    const timeDisplay = document.getElementById('time-display');
+    const timerLabel = document.getElementById('timer-label');
+    const timerProgress = document.getElementById('timer-progress');
+    const modeFocus = document.getElementById('mode-focus');
+    const modeBreak = document.getElementById('mode-break');
+    const playBtn = document.getElementById('play-btn');
+    const playIcon = document.getElementById('play-icon');
+    const pauseIcon = document.getElementById('pause-icon');
+    const btnText = document.getElementById('btn-text');
+    const resetBtn = document.getElementById('reset-btn');
+    const soundBtn = document.getElementById('sound-btn');
+    const soundOnSvg = document.getElementById('sound-on-svg');
+    const soundOffSvg = document.getElementById('sound-off-svg');
+    const completedCycles = document.getElementById('completed-cycles');
+    const totalFocusedTimeText = document.getElementById('total-focused-time');
+    
+    // Theme/Decor DOM references
+    const ambientGlow = document.getElementById('ambient-glow');
+    const headerDot = document.getElementById('header-dot');
+    const petContainer = document.getElementById('pet-container');
+    const petAmbient = document.getElementById('pet-ambient');
+    const petIcon = document.getElementById('pet-icon');
+    const petTitle = document.getElementById('pet-title');
+    const petDesc = document.getElementById('pet-desc');
+
+    // Pet Extra DOM bindings
+    const petLevelBadge = document.getElementById('pet-level-badge');
+    const petExpBar = document.getElementById('pet-exp-bar');
+    const petNotificationContainer = document.getElementById('pet-notification-container');
+
+    // Settings Modal Overlay & Inputs Elements selection
+    const openSettingsBtn = document.getElementById('open-settings-btn');
+    const closeSettingsBtn = document.getElementById('close-settings-btn');
+    const settingsModal = document.getElementById('settings-modal');
+    const sliderFocusMin = document.getElementById('slider-focus-min');
+    const sliderBreakMin = document.getElementById('slider-break-min');
+    const labelFocusVal = document.getElementById('label-focus-val');
+    const labelBreakVal = document.getElementById('label-break-val');
+    const saveSettingsBtn = document.getElementById('save-settings-btn');
+
+    // Tab Abandonment dialog bindings
+    const abandonModal = document.getElementById('abandon-modal');
+    const closeAbandonBtn = document.getElementById('close-abandon-btn');
+    const abandonedAngryEmoji = document.getElementById('abandoned-angry-emoji');
+
+    // Quick presets button triggers
+    const presetClassic = document.getElementById('preset-classic');
+    const presetDouble = document.getElementById('preset-double');
+    const presetShort = document.getElementById('preset-short');
+
+    // Persistence Core Logic
+    function saveGameState() {
+      try {
+        const state = {
+          petLevel: petLevel,
+          petExp: petExp,
+          petMood: petMood === 'Angry' ? 'Idle' : petMood, // safety: save normal mood to avoid brick on reload
+          completedCyclesCount: completedCyclesCount,
+          totalFocusedSeconds: totalFocusedSeconds,
+          isMuted: isMuted,
+          focusDuration: FOCUS_DURATION,
+          breakDuration: BREAK_DURATION
+        };
+        localStorage.setItem('pomodoro_pet_save_v1.4', JSON.stringify(state));
+      } catch (err) {
+        console.warn("Could not save focus pet state:", err);
+      }
+    }
+
+    function loadGameState() {
+      try {
+        const saved = localStorage.getItem('pomodoro_pet_save_v1.4');
+        if (saved) {
+          const state = JSON.parse(saved);
+          if (state.petLevel !== undefined) petLevel = parseInt(state.petLevel, 10);
+          if (state.petExp !== undefined) petExp = parseInt(state.petExp, 10);
+          if (state.petMood !== undefined) {
+             petMood = state.petMood === 'Angry' ? 'Idle' : state.petMood;
+          }
+          if (state.completedCyclesCount !== undefined) {
+            completedCyclesCount = parseInt(state.completedCyclesCount, 10);
+            completedCycles.textContent = completedCyclesCount;
+          }
+          if (state.totalFocusedSeconds !== undefined) {
+            totalFocusedSeconds = parseInt(state.totalFocusedSeconds, 10);
+            const focusedMins = Math.floor(totalFocusedSeconds / 60);
+            totalFocusedTimeText.innerHTML = `${focusedMins}<span class="text-[10px] text-zinc-500 font-sans ml-0.5">m</span>`;
+          }
+          if (state.isMuted !== undefined) {
+            isMuted = state.isMuted;
+            if (isMuted) {
+              soundOnSvg.classList.add('hidden');
+              soundOffSvg.classList.remove('hidden');
+            } else {
+              soundOnSvg.classList.remove('hidden');
+              soundOffSvg.classList.add('hidden');
+            }
+          }
+          if (state.focusDuration !== undefined) {
+            FOCUS_DURATION = parseInt(state.focusDuration, 10);
+            sliderFocusMin.value = FOCUS_DURATION / 60;
+            labelFocusVal.textContent = `${sliderFocusMin.value}m`;
+          }
+          if (state.breakDuration !== undefined) {
+            BREAK_DURATION = parseInt(state.breakDuration, 10);
+            sliderBreakMin.value = BREAK_DURATION / 60;
+            labelBreakVal.textContent = `${sliderBreakMin.value}m`;
+          }
+          
+          timeRemaining = currentMode === 'focus' ? FOCUS_DURATION : BREAK_DURATION;
+        }
+      } catch (err) {
+        console.warn("Could not read focus pet state:", err);
+      }
+    }
+
+    // UI Updates: Rendering states (Visual Core)
+    function updateClockDisplay() {
+      const mins = Math.floor(timeRemaining / 60);
+      const secs = timeRemaining % 60;
+      const formattedTime = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      
+      // Update screen
+      timeDisplay.textContent = formattedTime;
+      
+      // Dynamic Browser Tab Display
+      const modeEmoji = currentMode === 'focus' ? '🎯' : '☕';
+      document.title = `(${formattedTime}) ${modeEmoji} Pomodoro`;
+
+      // Update Circle Loader
+      const totalDuration = currentMode === 'focus' ? FOCUS_DURATION : BREAK_DURATION;
+      const fraction = timeRemaining / totalDuration;
+      const offset = CIRCUMFERENCE * (1 - fraction);
+      timerProgress.style.strokeDashoffset = offset;
+    }
+
+    // Update Virtual Pet UI elements dynamically
+    function updatePetDisplay() {
+      const displayLevel = Math.min(petLevel, 5);
+      const config = PET_CONFIG[displayLevel];
+      
+      let activeEmoji = config.base;
+      let displayTitle = config.name;
+      let displayDesc = config.desc;
+
+      if (petMood === 'Studying') {
+        activeEmoji = config.studying;
+        displayTitle = "Studying";
+        displayDesc = `Exp: ${petExp}/100`;
+      } else if (petMood === 'Sad') {
+        activeEmoji = config.sad;
+        displayTitle = "Sad";
+        displayDesc = `Exp: ${petExp}/100`;
+      } else if (petMood === 'Angry') {
+        activeEmoji = config.angry;
+        displayTitle = "Angry!";
+        displayDesc = `Wants you back...`;
+      } else if (petMood === 'Resting') {
+        activeEmoji = config.resting;
+        displayTitle = "Resting";
+        displayDesc = "Chilling out...";
+      }
+
+      // Render content
+      petLevelBadge.textContent = `LV. ${petLevel}`;
+      petIcon.textContent = activeEmoji;
+      petTitle.textContent = displayTitle;
+      petDesc.textContent = displayDesc;
+
+      // Update current abandonment popup and preview character
+      abandonedAngryEmoji.textContent = config.angry;
+
+      // Render progress indicator
+      petExpBar.style.width = `${petExp}%`;
+
+      // Update themed styles (purple for focus, green for break, red/crimson overrides for angry state if desired)
+      if (petMood === 'Angry') {
+        petLevelBadge.className = "absolute -top-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-zinc-950 border border-red-500/30 text-[9px] font-mono uppercase font-bold text-red-450 tracking-wider shadow-md z-20 transition-all duration-300";
+        petContainer.className = "relative w-28 h-28 flex flex-col items-center justify-center rounded-full bg-zinc-950 border border-red-500/25 shadow-[inset_0_2px_10px_rgba(0,0,0,0.8),_0_0_15px_rgba(239,68,68,0.1)] overflow-hidden transition-all duration-500 group animate-shake z-10";
+        petAmbient.className = "absolute inset-0 bg-gradient-to-tr from-red-500/10 to-transparent";
+        petTitle.className = "text-[9px] uppercase tracking-widest text-red-400 font-semibold mt-1.5 font-display text-glow-red";
+        petExpBar.className = "h-full bg-gradient-to-r from-red-500 to-red-400 shadow-[0_0_8px_rgba(239,68,68,0.5)] transition-all duration-500";
+      } else if (currentMode === 'focus') {
+        petLevelBadge.className = "absolute -top-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-zinc-950 border border-purple-500/30 text-[9px] font-mono uppercase font-bold text-purple-400 tracking-wider shadow-md z-20 transition-all duration-300";
+        petContainer.className = "relative w-28 h-28 flex flex-col items-center justify-center rounded-full bg-zinc-950 border border-purple-500/20 shadow-[inset_0_2px_10px_rgba(0,0,0,0.8),_0_0_15px_rgba(191,87,255,0.05)] overflow-hidden transition-all duration-500 group z-10";
+        petAmbient.className = "absolute inset-0 bg-gradient-to-tr from-purple-500/5 to-transparent animate-pulse-slow";
+        petTitle.className = "text-[9px] uppercase tracking-widest text-purple-400 font-semibold mt-1.5 font-display";
+        petExpBar.className = "h-full bg-gradient-to-r from-purple-500 to-purple-450 shadow-[0_0_8px_rgba(191,87,255,0.5)] transition-all duration-500";
+      } else {
+        petLevelBadge.className = "absolute -top-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-zinc-950 border border-green-500/30 text-[9px] font-mono uppercase font-bold text-green-400 tracking-wider shadow-md z-20 transition-all duration-300";
+        petContainer.className = "relative w-28 h-28 flex flex-col items-center justify-center rounded-full bg-zinc-950 border border-green-500/25 shadow-[inset_0_2px_10px_rgba(0,0,0,0.8),_0_0_15px_rgba(34,197,94,0.05)] overflow-hidden transition-all duration-500 group z-10";
+        petAmbient.className = "absolute inset-0 bg-gradient-to-tr from-green-500/5 to-transparent animate-pulse-slow";
+        petTitle.className = "text-[9px] uppercase tracking-widest text-green-400 font-semibold mt-1.5 font-display";
+        petExpBar.className = "h-full bg-gradient-to-r from-green-500 to-green-450 shadow-[0_0_8px_rgba(34,197,94,0.5)] transition-all duration-500";
+      }
+
+      // Handle EVOLUTION Halo at LV. 3 or higher (Visual shape & neon gradient glow changes)
+      const petHalo = document.getElementById('pet-halo');
+      if (petLevel >= 3) {
+        if (petHalo) {
+          petHalo.classList.remove('opacity-0', 'pointer-events-none');
+          petHalo.classList.add('opacity-100');
+        }
+      } else {
+        if (petHalo) {
+          petHalo.classList.add('opacity-0', 'pointer-events-none');
+          petHalo.classList.remove('opacity-100');
+        }
+      }
+
+      // Save state dynamically
+      saveGameState();
+    }
+
+    // Game Popup Floaters
+    function showPetNotification(text, type) {
+      const bubble = document.createElement('div');
+      bubble.textContent = text;
+      
+      let styleColor = "text-purple-400 drop-shadow-[0_0_4px_rgba(191,87,255,0.6)]";
+      if (type === 'loss') {
+        styleColor = "text-red-400 drop-shadow-[0_0_4px_rgba(239,68,68,0.6)]";
+      } else if (type === 'levelup') {
+        styleColor = "text-yellow-400 drop-shadow-[0_0_8px_rgba(234,179,8,0.8)] font-black uppercase text-[11px] tracking-widest scale-110";
+      } else if (type === 'gain') {
+        styleColor = "text-green-400 drop-shadow-[0_0_4px_rgba(34,197,94,0.6)]";
+      } else if (type === 'neutral') {
+        styleColor = "text-zinc-400 font-display";
+      }
+      
+      bubble.className = `absolute left-1/2 -translate-x-1/2 text-[9px] font-display font-medium whitespace-nowrap pointer-events-none transition-all duration-1000 ease-out opacity-100 translate-y-4 z-40 ${styleColor}`;
+      
+      petNotificationContainer.appendChild(bubble);
+      
+      requestAnimationFrame(() => {
+        bubble.style.transform = "translate(-50%, -50px)";
+        bubble.style.opacity = "0";
+      });
+      
+      setTimeout(() => {
+        bubble.remove();
+      }, 1000);
+    }
+
+    // Award +20 EXP
+    function awardPetExp(amount) {
+      petExp += amount;
+      showPetNotification(`+${amount} EXP! 🎉`, 'gain');
+      while (petExp >= 100) {
+        petExp -= 100;
+        petLevel++;
+        showPetNotification('LEVEL UP! 🌟', 'levelup');
+        triggerCelebrationSound();
+      }
+      updatePetDisplay();
+    }
+
+    // Deduct EXP Penalty
+    function deductPetExp(amount) {
+      petExp = Math.max(0, petExp - amount);
+      showPetNotification(`-${amount} EXP 😢`, 'loss');
+      updatePetDisplay();
+    }
+
+    // Synthesized Arpeggio celebration tune
+    function triggerCelebrationSound() {
+      if (isMuted) return;
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const now = ctx.currentTime;
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5 -> E5 -> G5 -> C6
+        
+        notes.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          
+          osc.frequency.setValueAtTime(freq, now + idx * 0.1);
+          gain.gain.setValueAtTime(0.12, now + idx * 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.35);
+          
+          osc.start(now + idx * 0.1);
+          osc.stop(now + idx * 0.1 + 0.38);
+        });
+      } catch (err) {
+        console.warn("Celebration Sound erred or was restricted:", err);
+      }
+    }
+
+    // Synthesized alarm noise for tab abandonment
+    function triggerAbandonAlertNoise() {
+      if (isMuted) return;
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const now = ctx.currentTime;
+        
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.type = 'sawtooth';
+        // Double siren effect
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.linearRampToValueAtTime(320, now + 0.2);
+        osc.frequency.linearRampToValueAtTime(150, now + 0.4);
+        osc.frequency.linearRampToValueAtTime(320, now + 0.6);
+
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+
+        osc.start(now);
+        osc.stop(now + 0.85);
+      } catch (err) {
+        console.warn("Abandon alert audio failed:", err);
+      }
+    }
+
+    // Toggle operational color schemes
+    function adjustVisualTheme() {
+      if (currentMode === 'focus') {
+        // Toggle tabs
+        modeFocus.className = "flex-1 py-3 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all duration-300 bg-purple-500/10 text-purple-400 border border-purple-500/10 active:scale-95 shadow-sm";
+        modeBreak.className = "flex-1 py-3 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all duration-300 text-zinc-400 hover:text-zinc-250 active:scale-95";
+        
+        // Label info
+        timerLabel.textContent = "Focus Session";
+        timerLabel.className = "text-[10px] tracking-[0.25em] font-semibold text-purple-400/90 uppercase mb-4";
+        
+        // SVG circle updates
+        timerProgress.className.baseVal = "stroke-purple-500 fill-transparent neon-purple-circle";
+        timeDisplay.className = "font-mono text-4xl font-black tracking-tight text-white transition-all duration-500 text-glow-purple";
+        
+        // Action buttons
+        playBtn.className = "flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-bold tracking-wider text-xs uppercase transition-all duration-300 active:scale-98 shadow-[0_4px_25px_rgba(191,87,255,0.35)] flex items-center justify-center gap-2 select-none";
+        
+        // Header & ambient glows
+        headerDot.className = "w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(191,87,255,0.8)] animate-pulse";
+        ambientGlow.className = "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-purple-500/5 blur-[120px] pointer-events-none transition-all duration-700";
+
+        btnText.textContent = isRunning ? "Pause Focus" : "Start Focus";
+      } else {
+        // Toggle tabs 
+        modeBreak.className = "flex-1 py-3 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all duration-300 bg-green-500/10 text-green-400 border border-green-500/10 active:scale-95 shadow-sm";
+        modeFocus.className = "flex-1 py-3 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all duration-300 text-zinc-400 hover:text-zinc-250 active:scale-95";
+        
+        // Label info
+        timerLabel.textContent = "Break Session";
+        timerLabel.className = "text-[10px] tracking-[0.25em] font-semibold text-green-400/90 uppercase mb-4";
+        
+        // SVG circle updates
+        timerProgress.className.baseVal = "stroke-green-500 fill-transparent neon-green-circle";
+        timeDisplay.className = "font-mono text-4xl font-black tracking-tight text-white transition-all duration-500 text-glow-green";
+        
+        // Action buttons
+        playBtn.className = "flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-bold tracking-wider text-xs uppercase transition-all duration-300 active:scale-98 shadow-[0_4px_25px_rgba(34,197,94,0.35)] flex items-center justify-center gap-2 select-none";
+        
+        // Header & ambient glows
+        headerDot.className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)] animate-pulse";
+        ambientGlow.className = "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-green-500/5 blur-[120px] pointer-events-none transition-all duration-700";
+
+        btnText.textContent = isRunning ? "Pause Break" : "Start Break";
+      }
+      
+      updatePetDisplay();
+    }
+
+    // Modern Web Audio Chime synthesizer setup
+    function triggerAudioAlert(isBreakAlert) {
+      if (isMuted) return;
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        
+        osc1.connect(gain1);
+        osc2.connect(gain2);
+        gain1.connect(ctx.destination);
+        gain2.connect(ctx.destination);
+        
+        const now = ctx.currentTime;
+        
+        if (isBreakAlert) {
+          // Warm double rising tone (C5 -> G5) entering a well deserved break
+          osc1.frequency.setValueAtTime(523.25, now); // C5
+          osc1.frequency.exponentialRampToValueAtTime(783.99, now + 0.25); // G5
+          osc2.frequency.setValueAtTime(261.63, now); // C4
+          osc2.frequency.exponentialRampToValueAtTime(392.00, now + 0.25); // G4
+          
+          gain1.gain.setValueAtTime(0.15, now);
+          gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+          gain2.gain.setValueAtTime(0.1, now);
+          gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+          
+          osc1.start(now);
+          osc2.start(now);
+          osc1.stop(now + 0.82);
+          osc2.stop(now + 0.82);
+        } else {
+          // Energetic crisp double chiming tone (G5 -> C6) resuming focused session
+          osc1.frequency.setValueAtTime(783.99, now); // G5
+          osc1.frequency.exponentialRampToValueAtTime(1046.50, now + 0.25); // C6
+          osc2.frequency.setValueAtTime(392.00, now); // G4
+          osc2.frequency.exponentialRampToValueAtTime(523.25, now + 0.25); // C5
+          
+          gain1.gain.setValueAtTime(0.15, now);
+          gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+          gain2.gain.setValueAtTime(0.1, now);
+          gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+          
+          osc1.start(now);
+          osc2.start(now);
+          osc1.stop(now + 0.82);
+          osc2.stop(now + 0.82);
+        }
+      } catch (err) {
+        console.warn("Audio Alert failed or was blocked by the browser policy:", err);
+      }
+    }
+
+    // Triggers distraction penalty 
+    function triggerPetInterruption() {
+      if (currentMode === 'focus' && !focusSessionInterrupted) {
+        focusSessionInterrupted = true;
+        petMood = 'Sad';
+        deductPetExp(10);
+      }
+    }
+
+    // Custom Security trigger logic for tab switching (Page Visibility API)
+    function triggerTabAbandonmentLoopholePenalty() {
+      // ONLY trigger penalty if focused session is ACTIVE and currently ticking
+      if (currentMode === 'focus' && isRunning) {
+        // 1. Automatically pause the Pomodoro countdown clock timer
+        pauseTimer();
+
+        // 2. Adjust state elements & deduct 25 EXP heavily as penalty
+        petMood = 'Angry';
+        focusSessionInterrupted = true;
+        deductPetExp(25);
+
+        // 3. Render and display on-screen warning alert overlays
+        updatePetDisplay();
+        triggerAbandonAlertNoise();
+
+        abandonModal.classList.remove('pointer-events-none', 'opacity-0', 'translate-y-4');
+        abandonModal.classList.add('opacity-100', 'translate-y-0');
+      }
+    }
+
+    // Listen on Tab Visibility change events (Loophole Blocker)
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        triggerTabAbandonmentLoopholePenalty();
+      }
+    });
+
+    closeAbandonBtn.addEventListener('click', () => {
+      // Dismiss the Tab Abandonment alert panel 
+      abandonModal.classList.add('pointer-events-none', 'opacity-0', 'translate-y-4');
+      abandonModal.classList.remove('opacity-100', 'translate-y-0');
+
+      // Revert pet mood to Idle so user can redeem themselves smoothly
+      if (petMood === 'Angry') {
+        petMood = 'Idle';
+        updatePetDisplay();
+      }
+    });
+
+    // App Control Logics
+    function startTimer() {
+      if (isRunning) return;
+      
+      isRunning = true;
+      adjustControlIcons();
+
+      // Set Companion state
+      if (currentMode === 'focus') {
+        petMood = 'Studying';
+      } else {
+        petMood = 'Resting';
+      }
+      updatePetDisplay();
+      
+      timerInterval = setInterval(() => {
+        if (timeRemaining > 0) {
+          timeRemaining--;
+          
+          // Accumulate focused seconds dynamically
+          if (currentMode === 'focus') {
+            totalFocusedSeconds++;
+            const focusedMins = Math.floor(totalFocusedSeconds / 60);
+            totalFocusedTimeText.innerHTML = `${focusedMins}<span class="text-[10px] text-zinc-500 font-sans ml-0.5">m</span>`;
+          }
+          
+          updateClockDisplay();
+        } else {
+          // Session Terminated! Run transition logic
+          handleSessionCompletion();
+        }
+      }, 1000);
+    }
+
+    // Settings Panel Controls
+    openSettingsBtn.addEventListener('click', () => {
+      // Toggle Open
+      settingsModal.classList.remove('pointer-events-none', 'opacity-0', 'translate-y-4');
+      settingsModal.classList.add('opacity-100', 'translate-y-0');
+    });
+
+    closeSettingsBtn.addEventListener('click', () => {
+      // Toggle Close
+      settingsModal.classList.add('pointer-events-none', 'opacity-0', 'translate-y-4');
+      settingsModal.classList.remove('opacity-100', 'translate-y-0');
+    });
+
+    // Real-time slider labels updates
+    sliderFocusMin.addEventListener('input', (e) => {
+      labelFocusVal.textContent = `${e.target.value}m`;
+    });
+
+    sliderBreakMin.addEventListener('input', (e) => {
+      labelBreakVal.textContent = `${e.target.value}m`;
+    });
+
+    // Presets trigger config
+    function applyPresetValues(focusVal, breakVal) {
+      sliderFocusMin.value = focusVal;
+      labelFocusVal.textContent = `${focusVal}m`;
+      sliderBreakMin.value = breakVal;
+      labelBreakVal.textContent = `${breakVal}m`;
+    }
+
+    presetClassic.addEventListener('click', () => applyPresetValues(25, 5));
+    presetDouble.addEventListener('click', () => applyPresetValues(50, 10));
+    presetShort.addEventListener('click', () => applyPresetValues(15, 3));
+
+    // Save and Apply Configuration Durations
+    saveSettingsBtn.addEventListener('click', () => {
+      const parsedFocusSecs = parseInt(sliderFocusMin.value, 10) * 60;
+      const parsedBreakSecs = parseInt(sliderBreakMin.value, 10) * 60;
+
+      // Update constants mutable variables
+      FOCUS_DURATION = parsedFocusSecs;
+      BREAK_DURATION = parsedBreakSecs;
+
+      // Stop running state and apply fresh custom time
+      pauseTimer();
+      timeRemaining = currentMode === 'focus' ? FOCUS_DURATION : BREAK_DURATION;
+
+      // Reset distraction tracking
+      focusSessionInterrupted = false;
+      petMood = currentMode === 'focus' ? 'Idle' : 'Resting';
+
+      // Re-render UI & Close settings Modal Overlay
+      adjustVisualTheme();
+      updateClockDisplay();
+
+      settingsModal.classList.add('pointer-events-none', 'opacity-0', 'translate-y-4');
+      settingsModal.classList.remove('opacity-100', 'translate-y-0');
+
+      showPetNotification("Durasi disimpan! ⏱️", "neutral");
+    });
+
+    function pauseTimer() {
+      if (!isRunning) return;
+      
+      // Check for distraction penalty
+      if (currentMode === 'focus' && petMood !== 'Angry') {
+        triggerPetInterruption();
+      }
+
+      clearInterval(timerInterval);
+      timerInterval = null;
+      isRunning = false;
+      adjustControlIcons();
+    }
+
+    // Completely rewritten reset with clear validation states
+    function resetTimer() {
+      // Check for distraction penalty on started sessions
+      if (currentMode === 'focus' && timeRemaining < FOCUS_DURATION && petMood !== 'Angry') {
+        triggerPetInterruption();
+      }
+
+      pauseTimer();
+      timeRemaining = currentMode === 'focus' ? FOCUS_DURATION : BREAK_DURATION;
+      
+      if (currentMode === 'focus') {
+        petMood = 'Idle';
+      } else {
+        petMood = 'Resting';
+      }
+      
+      updatePetDisplay();
+      updateClockDisplay();
+    }
+
+    function handleSessionCompletion() {
+      pauseTimer();
+      
+      if (currentMode === 'focus') {
+        // Just finished FOCUS session: transition to break mode!
+        completedCyclesCount++;
+        completedCycles.textContent = completedCyclesCount;
+        
+        // Award XP if completed without pauses/interruptions
+        if (!focusSessionInterrupted) {
+          awardPetExp(20);
+        } else {
+          showPetNotification("Ayo siklus berikutnya tanpa pause! 🐾", 'neutral');
+        }
+
+        triggerAudioAlert(true); // Alert entry to break
+        currentMode = 'break';
+        timeRemaining = BREAK_DURATION;
+        petMood = 'Resting';
+      } else {
+        // Just finished BREAK session: transition to focus mode!
+        triggerAudioAlert(false); // Alert entry back to focus
+        currentMode = 'focus';
+        timeRemaining = FOCUS_DURATION;
+        focusSessionInterrupted = false; // Reset interrupt tracking
+        petMood = 'Idle';
+      }
+      
+      adjustVisualTheme();
+      updateClockDisplay();
+    }
+
+    // Auxiliary Icon Adjuster
+    function adjustControlIcons() {
+      if (isRunning) {
+        // Hide Play icon, Show Pause icon
+        playIcon.classList.add('hidden');
+        pauseIcon.classList.remove('hidden');
+        btnText.textContent = currentMode === 'focus' ? "Pause Focus" : "Pause Break";
+      } else {
+        // Show Play icon, Hide Pause icon
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+        btnText.textContent = currentMode === 'focus' ? "Start Focus" : "Start Break";
+      }
+    }
+
+    // Interaction Observers & Handlers
+    playBtn.addEventListener('click', () => {
+      if (isRunning) {
+        pauseTimer();
+      } else {
+        startTimer();
+      }
+    });
+
+    resetBtn.addEventListener('click', resetTimer);
+
+    modeFocus.addEventListener('click', () => {
+      if (currentMode === 'focus') return;
+      pauseTimer();
+      currentMode = 'focus';
+      timeRemaining = FOCUS_DURATION;
+      focusSessionInterrupted = false; // Reset interrupt state for new session
+      petMood = 'Idle';
+      adjustVisualTheme();
+      updateClockDisplay();
+    });
+
+    modeBreak.addEventListener('click', () => {
+      if (currentMode === 'break') return;
+      pauseTimer();
+      currentMode = 'break';
+      timeRemaining = BREAK_DURATION;
+      petMood = 'Resting';
+      adjustVisualTheme();
+      updateClockDisplay();
+    });
+
+    soundBtn.addEventListener('click', () => {
+      isMuted = !isMuted;
+      if (isMuted) {
+        soundOnSvg.classList.add('hidden');
+        soundOffSvg.classList.remove('hidden');
+      } else {
+        soundOnSvg.classList.remove('hidden');
+        soundOffSvg.classList.add('hidden');
+      }
+    });
+
+    // Boot execution
+    loadGameState();
+    adjustVisualTheme();
+    updateClockDisplay();
+
+  </script>
+</body>
+</html>

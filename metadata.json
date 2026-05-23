@@ -1,0 +1,6 @@
+{
+  "name": "Pomodoro Timer",
+  "description": "A modern, minimalist responsive Pomodoro Timer with a dark mode theme and neon accents, featuring focus and break sessions with a central placeholder for a virtual pet.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
